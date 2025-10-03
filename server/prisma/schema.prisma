@@ -1,0 +1,67 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User{
+  id        String      @id @default(cuid()) 
+  email     String      @unique
+  name      String?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  workflows Workflow[]
+  credentials Credential[]
+}
+
+model Workflow {
+  id          String       @id @default(cuid())
+  name        String
+  nodes       Json
+  edges       Json
+  isActive    Boolean   @default(true)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  executions  Execution[]
+}
+
+enum ExecutionStatus {
+  SUCCESS
+  RUNNING
+  FAILED
+}
+
+model Execution {
+  id          String     @id @default(cuid())
+  workflowId  String
+  workflow    Workflow   @relation(fields: [workflowId], references: [id] , onDelete: Cascade)
+  status      ExecutionStatus
+  data        Json?
+  createdAt   DateTime   @default(now())
+  completedAt DateTime?
+}
+enum CredentialType {
+  OPENAI_API_KEY
+  SLACK_WEBHOOK_URL
+  EMAIL_PASSWORD
+  RESEND_API_KEY
+}
+
+model Credential {
+  id        String   @id @default(cuid()) 
+  type      CredentialType
+  encryptedValue String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, type]) 
+}
